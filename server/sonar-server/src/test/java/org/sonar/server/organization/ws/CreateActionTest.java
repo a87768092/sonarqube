@@ -21,6 +21,7 @@ package org.sonar.server.organization.ws;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nullable;
@@ -56,7 +57,6 @@ import org.sonar.server.organization.OrganizationValidation;
 import org.sonar.server.organization.OrganizationValidationImpl;
 import org.sonar.server.organization.TestOrganizationFlags;
 import org.sonar.server.qualityprofile.BuiltInQProfileRepository;
-import org.sonar.server.qualityprofile.index.ActiveRuleIndexer;
 import org.sonar.server.tester.UserSessionRule;
 import org.sonar.server.user.index.UserIndex;
 import org.sonar.server.user.index.UserIndexDefinition;
@@ -114,7 +114,7 @@ public class CreateActionTest {
   @Before
   public void setUp() {
     user = dbTester.users().insertUser();
-    userIndexer.index(user.getLogin());
+    userIndexer.indexOnStartup(new HashSet<>());
     userSession.logIn(user);
   }
 
