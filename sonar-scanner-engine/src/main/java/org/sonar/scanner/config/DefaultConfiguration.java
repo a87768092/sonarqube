@@ -104,21 +104,26 @@ public abstract class DefaultConfiguration implements Configuration {
     }
     Optional<String> value = getInternal(effectiveKey);
     if (value.isPresent()) {
-      List<String> result = new ArrayList<>();
-      try (CSVParser csvParser = CSVFormat.RFC4180
-        .withHeader((String) null)
-        .withIgnoreSurroundingSpaces(true)
-        .parse(new StringReader(value.get()))) {
-        List<CSVRecord> records = csvParser.getRecords();
-        if (!records.isEmpty()) {
-          records.get(0).iterator().forEachRemaining(result::add);
-          return result.toArray(new String[result.size()]);
-        }
-      } catch (IOException e) {
-        throw new IllegalStateException("Property: '" + effectiveKey + "' doesn't have a valid CSV value: '" + value.get() + "'", e);
-      }
+      return parseAsCsv(effectiveKey, value.get());
     }
     return ArrayUtils.EMPTY_STRING_ARRAY;
+  }
+
+  public static String[] parseAsCsv(String key, String value) {
+    List<String> result = new ArrayList<>();
+    try (CSVParser csvParser = CSVFormat.RFC4180
+      .withHeader((String) null)
+      .withIgnoreSurroundingSpaces(true)
+      .parse(new StringReader(value))) {
+      List<CSVRecord> records = csvParser.getRecords();
+      if (records.isEmpty()) {
+        return ArrayUtils.EMPTY_STRING_ARRAY;
+      }
+      records.get(0).iterator().forEachRemaining(result::add);
+      return result.toArray(new String[result.size()]);
+    } catch (IOException e) {
+      throw new IllegalStateException("Property: '" + key + "' doesn't contain a valid CSV value: '" + value + "'", e);
+    }
   }
 
   private Optional<String> getInternal(String key) {

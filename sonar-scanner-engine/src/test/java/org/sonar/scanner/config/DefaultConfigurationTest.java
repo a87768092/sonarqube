@@ -95,7 +95,7 @@ public class DefaultConfigurationTest {
       getStringArray("\"a ,b");
       fail("Expected exception");
     } catch (Exception e) {
-      assertThat(e).hasMessage("Property: 'multi' doesn't have a valid CSV value: '\"a ,b'");
+      assertThat(e).hasMessage("Property: 'multi' doesn't contain a valid CSV value: '\"a ,b'");
     }
   }
 
