@@ -31,7 +31,6 @@ import org.sonar.db.DbSession;
 import org.sonar.db.measure.custom.CustomMeasureDto;
 import org.sonar.db.metric.MetricDto;
 import org.sonar.server.user.UserSession;
-import org.sonar.server.util.MetricKeyValidator;
 
 import static org.sonar.server.ws.WsUtils.checkRequest;
 
@@ -114,9 +113,6 @@ public class UpdateAction implements MetricsWsAction {
   private static MetricDto newMetricTemplate(Request request) {
     int id = request.mandatoryParamAsInt(PARAM_ID);
     String key = request.param(PARAM_KEY);
-    if (key != null) {
-      MetricKeyValidator.checkMetricKeyFormat(key);
-    }
     String type = request.param(PARAM_TYPE);
     String name = request.param(PARAM_NAME);
     String domain = request.param(PARAM_DOMAIN);

@@ -33,7 +33,6 @@ import org.sonar.db.metric.MetricDto;
 import org.sonar.server.user.UserSession;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static org.sonar.server.util.MetricKeyValidator.checkMetricKeyFormat;
 import static org.sonar.server.ws.WsUtils.checkRequest;
 
 public class CreateAction implements MetricsWsAction {
@@ -115,7 +114,7 @@ public class CreateAction implements MetricsWsAction {
   }
 
   private static MetricDto newMetricTemplate(Request request) {
-    String key = checkMetricKeyFormat(request.mandatoryParam(PARAM_KEY));
+    String key = request.mandatoryParam(PARAM_KEY);
     String name = request.mandatoryParam(PARAM_NAME);
     String type = Metric.ValueType.valueOf(request.mandatoryParam(PARAM_TYPE)).name();
     String domain = request.param(PARAM_DOMAIN);

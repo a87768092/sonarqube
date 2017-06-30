@@ -21,41 +21,8 @@ package org.sonar.server.util;
 
 public class MetricKeyValidator {
 
-  /*
-   * Allowed characters are alphanumeric, '-', '_', with at least one non-digit
-   */
-  private static final String VALID_METRIC_KEY_REGEXP = "[\\p{Alnum}\\-_]*[\\p{Alpha}\\-_]+[\\p{Alnum}\\-_]*";
-
   private MetricKeyValidator() {
     // static stuff only
   }
 
-  /**
-   * <p>Test if given parameter is valid for a project/module. Valid format is:</p>
-   * <ul>
-   *  <li>Allowed characters:
-   *    <ul>
-   *      <li>Uppercase ASCII letters A-Z</li>
-   *      <li>Lowercase ASCII letters a-z</li>
-   *      <li>ASCII digits 0-9</li>
-   *      <li>Punctuation signs dash '-', underscore '_'</li>
-   *    </ul>
-   *  </li>
-   *  <li>At least one non-digit</li>
-   * </ul>
-   * @param candidateKey
-   * @return <code>true</code> if <code>candidateKey</code> can be used for a metric
-   */
-  public static boolean isMetricKeyValid(String candidateKey) {
-    return candidateKey.matches(VALID_METRIC_KEY_REGEXP);
-  }
-
-  public static String checkMetricKeyFormat(String candidateKey) {
-    if (!isMetricKeyValid(candidateKey)) {
-      throw new IllegalArgumentException(String.format("Malformed metric key '%s'. Allowed characters are alphanumeric, '-', '_', with at least one non-digit.",
-        candidateKey));
-    }
-
-    return candidateKey;
-  }
 }

@@ -39,6 +39,7 @@ import org.sonar.db.RowNotFoundException;
 import static com.google.common.collect.Lists.newArrayList;
 import static org.sonar.db.DatabaseUtils.executeLargeInputs;
 import static org.sonar.db.DatabaseUtils.executeLargeInputsWithoutOutput;
+import static org.sonar.db.metric.MetricDtoValidator.validate;
 
 public class MetricDao implements Dao {
 
@@ -81,7 +82,7 @@ public class MetricDao implements Dao {
   }
 
   public MetricDto insert(DbSession session, MetricDto dto) {
-    mapper(session).insert(dto);
+    mapper(session).insert(validate(dto));
 
     return dto;
   }
@@ -133,6 +134,7 @@ public class MetricDao implements Dao {
   }
 
   public void update(DbSession session, MetricDto metric) {
+    validate(metric);
     mapper(session).update(metric);
   }
 
