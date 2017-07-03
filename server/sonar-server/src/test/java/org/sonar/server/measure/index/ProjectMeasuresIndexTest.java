@@ -1269,7 +1269,7 @@ public class ProjectMeasuresIndexTest {
   }
 
   @Test
-  public void facet_tags_size_limited_to_10() {
+  public void facet_tags_returns_10_elements_by_default() {
     index(
       newDoc().setTags(newArrayList("finance1", "finance2", "finance3", "finance4", "finance5", "finance6", "finance7", "finance8", "finance9", "finance10")),
       newDoc().setTags(newArrayList("finance1", "finance2", "finance3", "finance4", "finance5", "finance6", "finance7", "finance8", "finance9", "finance10")),

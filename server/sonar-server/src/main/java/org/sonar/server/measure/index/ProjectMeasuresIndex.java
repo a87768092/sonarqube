@@ -109,10 +109,12 @@ public class ProjectMeasuresIndex {
     FILTER_LANGUAGES,
     FILTER_TAGS);
 
+  private static final int MAX_PAGE_SIZE = 100;
+
   private static final Double[] LINES_THRESHOLDS = new Double[] {1_000d, 10_000d, 100_000d, 500_000d};
   private static final Double[] COVERAGE_THRESHOLDS = new Double[] {30d, 50d, 70d, 80d};
-  private static final Double[] DUPLICATIONS_THRESHOLDS = new Double[] {3d, 5d, 10d, 20d};
 
+  private static final Double[] DUPLICATIONS_THRESHOLDS = new Double[] {3d, 5d, 10d, 20d};
   private static final String FIELD_MEASURES_KEY = FIELD_MEASURES + "." + ProjectMeasuresIndexDefinition.FIELD_MEASURES_KEY;
   private static final String FIELD_MEASURES_VALUE = FIELD_MEASURES + "." + ProjectMeasuresIndexDefinition.FIELD_MEASURES_VALUE;
 
@@ -348,15 +350,15 @@ public class ProjectMeasuresIndex {
     }
   }
 
-  public List<String> searchTags(@Nullable String textQuery, int pageSize) {
-    checkArgument(pageSize <= 100, "Page size must be lower than or equals to " + 100);
-    if (pageSize == 0) {
+  public List<String> searchTags(@Nullable String textQuery, int size) {
+    checkArgument(size <= MAX_PAGE_SIZE, "Page size must be lower than or equals to " + MAX_PAGE_SIZE);
+    if (size <= 0) {
       return emptyList();
     }
 
     TermsBuilder tagFacet = AggregationBuilders.terms(FIELD_TAGS)
       .field(FIELD_TAGS)
-      .size(pageSize)
+      .size(size)
       .minDocCount(1)
       .order(Terms.Order.term(true));
     if (textQuery != null) {
