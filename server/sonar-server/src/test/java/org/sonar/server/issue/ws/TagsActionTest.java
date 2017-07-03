@@ -69,7 +69,7 @@ public class TagsActionTest {
   private IssueIndex issueIndex = new IssueIndex(es.client(), System2.INSTANCE, userSession, new AuthorizationTypeSupport(userSession));
   private RuleIndex ruleIndex = new RuleIndex(es.client());
 
-  private WsActionTester tester = new WsActionTester(new TagsAction(issueIndex, ruleIndex, db.getDbClient(), TestDefaultOrganizationProvider.from(db)));
+  private WsActionTester ws = new WsActionTester(new TagsAction(issueIndex, ruleIndex, db.getDbClient(), TestDefaultOrganizationProvider.from(db)));
   private OrganizationDto organization;
 
   @Before
@@ -83,7 +83,7 @@ public class TagsActionTest {
     insertIssueWithBrowsePermission(insertRuleWithoutTags(), "tag1", "tag2");
     insertIssueWithBrowsePermission(insertRuleWithoutTags(), "tag3", "tag4", "tag5");
 
-    String result = tester.newRequest()
+    String result = ws.newRequest()
       .setParam("organization", organization.getKey())
       .execute().getInput();
     assertJson(result).isSimilarTo("{\"tags\":[\"tag1\", \"tag2\", \"tag3\", \"tag4\", \"tag5\"]}");
@@ -102,7 +102,7 @@ public class TagsActionTest {
     db.rules().insertOrUpdateMetadata(r2, organization, setTags("tag4", "tag5"));
     ruleIndexer.indexRuleExtension(organization, r2.getKey());
 
-    String result = tester.newRequest()
+    String result = ws.newRequest()
       .setParam("organization", organization.getKey())
       .execute().getInput();
     assertJson(result).isSimilarTo("{\"tags\":[\"tag1\", \"tag2\", \"tag3\", \"tag4\", \"tag5\"]}");
@@ -119,7 +119,7 @@ public class TagsActionTest {
     db.rules().insertOrUpdateMetadata(r, organization, setTags("tag7"));
     ruleIndexer.indexRuleExtension(organization, r.getKey());
 
-    String result = tester.newRequest()
+    String result = ws.newRequest()
       .setParam("organization", organization.getKey())
       .execute().getInput();
     assertJson(result).isSimilarTo("{\"tags\":[\"tag1\", \"tag2\", \"tag3\", \"tag4\", \"tag5\", \"tag6\", \"tag7\"]}");
@@ -131,7 +131,7 @@ public class TagsActionTest {
     insertIssueWithBrowsePermission(insertRuleWithoutTags(), "tag1", "tag2");
     insertIssueWithBrowsePermission(insertRuleWithoutTags(), "tag3", "tag4", "tag5");
 
-    String result = tester.newRequest()
+    String result = ws.newRequest()
       .setParam("ps", "2")
       .setParam("organization", organization.getKey())
       .execute().getInput();
@@ -144,7 +144,7 @@ public class TagsActionTest {
     insertIssueWithBrowsePermission(insertRuleWithoutTags(), "tag1", "tag2");
     insertIssueWithBrowsePermission(insertRuleWithoutTags(), "tag12", "tag4", "tag5");
 
-    String result = tester.newRequest()
+    String result = ws.newRequest()
       .setParam("q", "ag1")
       .setParam("organization", organization.getKey())
       .execute().getInput();
@@ -157,7 +157,7 @@ public class TagsActionTest {
     insertIssueWithBrowsePermission(insertRuleWithoutTags(), "tag1", "tag2");
     insertIssueWithoutBrowsePermission(insertRuleWithoutTags(), "tag3", "tag4");
 
-    String result = tester.newRequest()
+    String result = ws.newRequest()
       .setParam("organization", organization.getKey())
       .execute().getInput();
     assertJson(result).isSimilarTo("{\"tags\":[\"tag1\", \"tag2\"]}");
@@ -165,14 +165,14 @@ public class TagsActionTest {
   }
 
   @Test
-  public void return_empty_list() throws Exception {
+  public void empty_list() throws Exception {
     userSession.logIn();
-    String result = tester.newRequest().execute().getInput();
+    String result = ws.newRequest().execute().getInput();
     assertJson(result).isSimilarTo("{\"tags\":[]}");
   }
 
   @Test
-  public void test_example() throws Exception {
+  public void json_example() throws Exception {
     userSession.logIn();
     insertIssueWithBrowsePermission(insertRuleWithoutTags(), "convention");
 
@@ -181,16 +181,17 @@ public class TagsActionTest {
     db.rules().insertOrUpdateMetadata(r, organization, setTags("security"));
     ruleIndexer.indexRuleExtension(organization, r.getKey());
 
-    String result = tester.newRequest()
+    String result = ws.newRequest()
       .setParam("organization", organization.getKey())
       .execute().getInput();
-    assertJson(result).isSimilarTo(tester.getDef().responseExampleAsString());
+
+    assertJson(result).isSimilarTo(ws.getDef().responseExampleAsString());
   }
 
   @Test
-  public void test_definition() {
+  public void definition() {
     userSession.logIn();
-    Action action = tester.getDef();
+    Action action = ws.getDef();
     assertThat(action.description()).isNotEmpty();
     assertThat(action.responseExampleAsString()).isNotEmpty();
     assertThat(action.isPost()).isFalse();
@@ -198,13 +199,11 @@ public class TagsActionTest {
     assertThat(action.params()).extracting(Param::key).containsExactlyInAnyOrder("q", "ps", "organization");
 
     Param query = action.param("q");
-    assertThat(query).isNotNull();
     assertThat(query.isRequired()).isFalse();
     assertThat(query.description()).isNotEmpty();
     assertThat(query.exampleValue()).isNotEmpty();
 
     Param pageSize = action.param("ps");
-    assertThat(pageSize).isNotNull();
     assertThat(pageSize.isRequired()).isFalse();
     assertThat(pageSize.defaultValue()).isEqualTo("10");
     assertThat(pageSize.description()).isNotEmpty();
