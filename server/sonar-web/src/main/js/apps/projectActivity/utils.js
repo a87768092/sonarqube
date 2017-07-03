@@ -19,7 +19,6 @@
  */
 // @flow
 import moment from 'moment';
-import { sortBy } from 'lodash';
 import {
   cleanQuery,
   parseAsDate,
@@ -110,19 +109,12 @@ export const getAnalysesByVersionByDay = (
     if (!currentVersion.byDay[day]) {
       currentVersion.byDay[day] = [];
     }
-    const sortedEvents = sortBy(
-      analysis.events,
-      // versions last
-      event => (event.category === 'VERSION' ? 1 : 0),
-      // then the rest sorted by category
-      'category'
-    );
-    currentVersion.byDay[day].push({ ...analysis, events: sortedEvents });
+    currentVersion.byDay[day].push(analysis);
 
-    const lastEvent = sortedEvents[sortedEvents.length - 1];
-    if (lastEvent && lastEvent.category === 'VERSION') {
-      currentVersion.version = lastEvent.name;
-      currentVersion.key = lastEvent.key;
+    const versionEvent = analysis.events.find(event => event.category === 'VERSION');
+    if (versionEvent && versionEvent.category === 'VERSION') {
+      currentVersion.version = versionEvent.name;
+      currentVersion.key = versionEvent.key;
       acc.push({ version: undefined, key: undefined, byDay: {} });
     }
     return acc;

@@ -19,6 +19,7 @@
  */
 // @flow
 import React from 'react';
+import { sortBy } from 'lodash';
 import Event from './Event';
 import type { Event as EventType } from '../types';
 
@@ -32,9 +33,17 @@ type Props = {
 };
 
 export default function Events(props: Props) {
+  const sortedEvents = sortBy(
+    props.events,
+    // versions last
+    event => (event.category === 'VERSION' ? 1 : 0),
+    // then the rest sorted by category
+    'category'
+  );
+
   return (
     <div className="project-activity-events">
-      {props.events.map(event => (
+      {sortedEvents.map(event => (
         <Event
           analysis={props.analysis}
           canAdmin={props.canAdmin}
