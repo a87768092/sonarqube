@@ -95,7 +95,7 @@ public class RuleIndexTest {
   @Rule
   public DbTester db = DbTester.create(system2);
   @Rule
-  public ExpectedException thrown = ExpectedException.none();
+  public ExpectedException expectedException = ExpectedException.none();
 
   private RuleIndex underTest;
   private RuleIndexer ruleIndexer;
@@ -615,6 +615,16 @@ public class RuleIndexTest {
   }
 
   @Test
+  public void fail_to_list_tags_when_size_greater_than_100() {
+    OrganizationDto organization = db.organizations().insert();
+
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("Page size must be lower than or equals to 100");
+
+    underTest.listTags(organization, null, 101);
+  }
+
+  @Test
   public void available_since() {
     RuleDefinitionDto ruleOld = createRule(setCreatedAt(1_000L));
     RuleDefinitionDto ruleOlder = createRule(setCreatedAt(2_000L));
@@ -816,7 +826,7 @@ public class RuleIndexTest {
     RuleQuery query = new RuleQuery();
     SearchOptions options = new SearchOptions().addFacets(singletonList(FACET_TAGS));
 
-    thrown.expectMessage("Cannot use tags facet, if no organization is specified.");
+    expectedException.expectMessage("Cannot use tags facet, if no organization is specified.");
     underTest.search(query, options);
   }
 

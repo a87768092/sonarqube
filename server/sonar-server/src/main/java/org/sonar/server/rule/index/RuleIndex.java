@@ -65,6 +65,7 @@ import org.sonar.server.es.SearchOptions;
 import org.sonar.server.es.StickyFacetBuilder;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
 import static org.elasticsearch.index.query.QueryBuilders.boolQuery;
 import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
@@ -120,6 +121,8 @@ public class RuleIndex {
       input -> !RuleStatus.REMOVED.toString().equals(input)));
   private static final String AGGREGATION_NAME = "_ref";
   private static final String AGGREGATION_NAME_FOR_TAGS = "tagsAggregation";
+  private static final int MAX_PAGE_SIZE = 100;
+
   private final EsClient client;
 
   public RuleIndex(EsClient client) {
@@ -510,6 +513,11 @@ public class RuleIndex {
   }
 
   public List<String> listTags(OrganizationDto organization, @Nullable String query, int size) {
+    checkArgument(size <= MAX_PAGE_SIZE, "Page size must be lower than or equals to " + MAX_PAGE_SIZE);
+    if (size <= 0) {
+      return emptyList();
+    }
+
     TermsQueryBuilder scopeFilter = QueryBuilders.termsQuery(
       FIELD_RULE_EXTENSION_SCOPE,
       RuleExtensionScope.system().getScope(),
