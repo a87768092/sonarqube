@@ -229,7 +229,7 @@ public class RuleDoc extends BaseDoc {
       if (RuleDto.Format.HTML == ruleForIndexingDto.getDescriptionFormat()) {
         ruleDoc.setHtmlDescription(ruleForIndexingDto.getDescription());
       } else {
-        ruleDoc.setHtmlDescription(Markdown.convertToHtml(ruleForIndexingDto.getDescription()));;
+        ruleDoc.setHtmlDescription(Markdown.convertToHtml(ruleForIndexingDto.getDescription()));
       }
     }
     return ruleDoc;

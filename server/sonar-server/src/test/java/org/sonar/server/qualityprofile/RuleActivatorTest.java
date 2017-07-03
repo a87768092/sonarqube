@@ -48,7 +48,6 @@ import org.sonar.server.es.EsTester;
 import org.sonar.server.es.SearchOptions;
 import org.sonar.server.exceptions.BadRequestException;
 import org.sonar.server.qualityprofile.index.ActiveRuleIndexer;
-import org.sonar.server.qualityprofile.index.ActiveRuleIteratorFactory;
 import org.sonar.server.rule.index.RuleIndex;
 import org.sonar.server.rule.index.RuleIndexDefinition;
 import org.sonar.server.rule.index.RuleIndexer;
@@ -86,8 +85,7 @@ public class RuleActivatorTest {
   public UserSessionRule userSession = UserSessionRule.standalone();
   private RuleIndex ruleIndex = new RuleIndex(es.client());
   private RuleActivatorContextFactory contextFactory = new RuleActivatorContextFactory(db.getDbClient());
-  private ActiveRuleIteratorFactory activeRuleIteratorFactory = new ActiveRuleIteratorFactory(db.getDbClient());
-  private ActiveRuleIndexer activeRuleIndexer = new ActiveRuleIndexer(db.getDbClient(), es.client(), activeRuleIteratorFactory);
+  private ActiveRuleIndexer activeRuleIndexer = new ActiveRuleIndexer(db.getDbClient(), es.client());
   private RuleIndexer ruleIndexer = new RuleIndexer(es.client(), db.getDbClient());
   private TypeValidations typeValidations = new TypeValidations(asList(new StringTypeValidation(), new IntegerTypeValidation()));
 
@@ -732,7 +730,7 @@ public class RuleActivatorTest {
   public void unset_parent_when_no_parent_does_not_fail() {
     RuleDefinitionDto rule = createRule();
     QProfileDto profile = createProfile(rule);
-    underTest.setParent(db.getSession(), profile, null);
+    underTest.setParentAndCommit(db.getSession(), profile, null);
   }
 
   @Test
@@ -742,7 +740,7 @@ public class RuleActivatorTest {
 
     expectedException.expect(BadRequestException.class);
     expectedException.expectMessage(" can not be selected as parent of ");
-    underTest.setParent(db.getSession(), profile, profile);
+    underTest.setParentAndCommit(db.getSession(), profile, profile);
   }
 
   @Test
@@ -753,7 +751,7 @@ public class RuleActivatorTest {
 
     expectedException.expect(BadRequestException.class);
     expectedException.expectMessage(" can not be selected as parent of ");
-    underTest.setParent(db.getSession(), parentProfile, childProfile);
+    underTest.setParentAndCommit(db.getSession(), parentProfile, childProfile);
   }
 
   @Test
@@ -765,7 +763,7 @@ public class RuleActivatorTest {
 
     expectedException.expect(BadRequestException.class);
     expectedException.expectMessage(" can not be selected as parent of ");
-    underTest.setParent(db.getSession(), parentProfile, grandchildProfile);
+    underTest.setParentAndCommit(db.getSession(), parentProfile, grandchildProfile);
   }
 
   @Test
@@ -784,7 +782,7 @@ public class RuleActivatorTest {
     expectedException.expect(BadRequestException.class);
     expectedException.expectMessage("Cannot set the profile");
 
-    underTest.setParent(db.getSession(), childProfile, parentProfile);
+    underTest.setParentAndCommit(db.getSession(), childProfile, parentProfile);
   }
 
   @Test
@@ -800,12 +798,12 @@ public class RuleActivatorTest {
     changes = activate(profile2, RuleActivation.create(rule2.getKey()));
     assertThat(changes).hasSize(1);
 
-    changes = underTest.setParent(db.getSession(), profile2, profile1);
+    changes = underTest.setParentAndCommit(db.getSession(), profile2, profile1);
     assertThat(changes).hasSize(1);
     assertThatRuleIsActivated(profile2, rule1, changes, rule1.getSeverityString(), INHERITED, emptyMap());
     assertThatRuleIsActivated(profile2, rule2, null, rule2.getSeverityString(), null, emptyMap());
 
-    changes = underTest.setParent(db.getSession(), profile2, null);
+    changes = underTest.setParentAndCommit(db.getSession(), profile2, null);
     assertThat(changes).hasSize(1);
     assertThatRuleIsActivated(profile2, rule2, null, rule2.getSeverityString(), null, emptyMap());
     assertThatRuleIsNotPresent(profile2, rule1);
@@ -823,7 +821,7 @@ public class RuleActivatorTest {
     changes = activate(profile2, RuleActivation.create(rule2.getKey()));
     assertThat(changes).hasSize(1);
 
-    changes = underTest.setParent(db.getSession(), profile2, profile1);
+    changes = underTest.setParentAndCommit(db.getSession(), profile2, profile1);
     assertThat(changes).hasSize(1);
     assertThatRuleIsActivated(profile2, rule1, changes, rule1.getSeverityString(), INHERITED, emptyMap());
     assertThatRuleIsActivated(profile2, rule2, null, rule2.getSeverityString(), null, emptyMap());
@@ -834,7 +832,7 @@ public class RuleActivatorTest {
     assertThatRuleIsUpdated(profile2, rule1, BLOCKER, ActiveRule.Inheritance.OVERRIDES, emptyMap());
     assertThatRuleIsActivated(profile2, rule2, null, rule2.getSeverityString(), null, emptyMap());
 
-    changes = underTest.setParent(db.getSession(), profile2, null);
+    changes = underTest.setParentAndCommit(db.getSession(), profile2, null);
     assertThat(changes).hasSize(1);
     // Not testing changes here since severity is not set in changelog
     assertThatRuleIsActivated(profile2, rule1, null, BLOCKER, null, emptyMap());
@@ -858,7 +856,7 @@ public class RuleActivatorTest {
     RuleQuery ruleQuery = new RuleQuery()
       .setRepositories(singletonList(repositoryKey));
 
-    BulkChangeResult bulkChangeResult = underTest.bulkActivate(db.getSession(), ruleQuery, profile, MINOR);
+    BulkChangeResult bulkChangeResult = underTest.bulkActivateAndCommit(db.getSession(), ruleQuery, profile, MINOR);
 
     assertThat(bulkChangeResult.countFailed()).isEqualTo(0);
     assertThat(bulkChangeResult.countSucceeded()).isEqualTo(bulkSize);
@@ -885,7 +883,7 @@ public class RuleActivatorTest {
     RuleQuery ruleQuery = new RuleQuery()
       .setRepositories(singletonList(repositoryKey));
 
-    BulkChangeResult bulkChangeResult = underTest.bulkActivate(db.getSession(), ruleQuery, profile, MINOR);
+    BulkChangeResult bulkChangeResult = underTest.bulkActivateAndCommit(db.getSession(), ruleQuery, profile, MINOR);
 
     assertThat(bulkChangeResult.countFailed()).isEqualTo(0);
     assertThat(bulkChangeResult.countSucceeded()).isEqualTo(bulkSize);
@@ -893,7 +891,7 @@ public class RuleActivatorTest {
     assertThat(db.getDbClient().activeRuleDao().selectByProfile(db.getSession(), profile)).hasSize(bulkSize);
 
     // Now deactivate all rules
-    bulkChangeResult = underTest.bulkDeactivate(db.getSession(), ruleQuery, profile);
+    bulkChangeResult = underTest.bulkDeactivateAndCommit(db.getSession(), ruleQuery, profile);
 
     assertThat(bulkChangeResult.countFailed()).isEqualTo(0);
     assertThat(bulkChangeResult.countSucceeded()).isEqualTo(bulkSize);
@@ -917,7 +915,7 @@ public class RuleActivatorTest {
 
     RuleQuery ruleQuery = new RuleQuery()
       .setQProfile(childProfile);
-    BulkChangeResult bulkChangeResult = underTest.bulkDeactivate(db.getSession(), ruleQuery, childProfile);
+    BulkChangeResult bulkChangeResult = underTest.bulkDeactivateAndCommit(db.getSession(), ruleQuery, childProfile);
 
     assertThat(bulkChangeResult.countFailed()).isEqualTo(1);
     assertThat(bulkChangeResult.countSucceeded()).isEqualTo(0);
@@ -942,7 +940,7 @@ public class RuleActivatorTest {
     RuleQuery query = new RuleQuery()
       .setRuleKey(rule1.getRuleKey())
       .setQProfile(parentProfile);
-    BulkChangeResult result = underTest.bulkActivate(db.getSession(), query, parentProfile, "BLOCKER");
+    BulkChangeResult result = underTest.bulkActivateAndCommit(db.getSession(), query, parentProfile, "BLOCKER");
 
     assertThat(result.getChanges()).hasSize(3);
     assertThat(result.countSucceeded()).isEqualTo(1);
@@ -1059,7 +1057,7 @@ public class RuleActivatorTest {
     db.rules().update(rule1);
 
     QProfileDto childProfile = createProfile(rule1);
-    List<ActiveRuleChange> changes = underTest.setParent(db.getSession(), childProfile, parentProfile);
+    List<ActiveRuleChange> changes = underTest.setParentAndCommit(db.getSession(), childProfile, parentProfile);
 
     assertThatRuleIsNotPresent(childProfile, rule1);
     assertThatRuleIsActivated(childProfile, rule2, changes, rule2.getSeverityString(), INHERITED, emptyMap());

@@ -17,11 +17,15 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonar.server.qualityprofile.index;
+package org.sonar.server.es;
 
-import java.util.Iterator;
+import java.util.Collection;
 
-public interface ActiveRuleIterator extends Iterator<ActiveRuleDoc>, AutoCloseable {
-  @Override
-  void close();
+public interface IndexingListener {
+
+  void onSuccess(Collection<String> docIds);
+
+  static IndexingListener noop() {
+    return docIds -> {};
+  }
 }

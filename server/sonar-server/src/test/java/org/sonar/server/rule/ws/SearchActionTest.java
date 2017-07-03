@@ -55,7 +55,6 @@ import org.sonar.server.qualityprofile.RuleActivation;
 import org.sonar.server.qualityprofile.RuleActivator;
 import org.sonar.server.qualityprofile.RuleActivatorContextFactory;
 import org.sonar.server.qualityprofile.index.ActiveRuleIndexer;
-import org.sonar.server.qualityprofile.index.ActiveRuleIteratorFactory;
 import org.sonar.server.rule.index.RuleIndex;
 import org.sonar.server.rule.index.RuleIndexDefinition;
 import org.sonar.server.rule.index.RuleIndexer;
@@ -100,7 +99,7 @@ public class SearchActionTest {
   private DefaultOrganizationProvider defaultOrganizationProvider = TestDefaultOrganizationProvider.from(dbTester);
   private RuleIndex ruleIndex = new RuleIndex(es.client());
   private RuleIndexer ruleIndexer = new RuleIndexer(es.client(), dbTester.getDbClient());
-  private ActiveRuleIndexer activeRuleIndexer = new ActiveRuleIndexer(dbTester.getDbClient(), es.client(), new ActiveRuleIteratorFactory(dbTester.getDbClient()));
+  private ActiveRuleIndexer activeRuleIndexer = new ActiveRuleIndexer(dbTester.getDbClient(), es.client());
   private Languages languages = LanguageTesting.newLanguages("java", "js");
   private ActiveRuleCompleter activeRuleCompleter = new ActiveRuleCompleter(dbTester.getDbClient(), languages);
   private RuleWsSupport wsSupport = new RuleWsSupport(dbTester.getDbClient(), userSession, defaultOrganizationProvider);

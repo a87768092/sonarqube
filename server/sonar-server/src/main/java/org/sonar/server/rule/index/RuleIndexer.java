@@ -26,12 +26,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import org.elasticsearch.action.index.IndexRequest;
-import org.sonar.db.es.RuleExtensionId;
 import org.sonar.api.rule.RuleKey;
 import org.sonar.core.util.stream.MoreCollectors;
 import org.sonar.db.DbClient;
 import org.sonar.db.DbSession;
 import org.sonar.db.es.EsQueueDto;
+import org.sonar.db.es.RuleExtensionId;
 import org.sonar.db.organization.OrganizationDto;
 import org.sonar.db.rule.RuleExtensionForIndexingDto;
 import org.sonar.db.rule.RuleForIndexingDto;
@@ -39,15 +39,16 @@ import org.sonar.server.es.BulkIndexer;
 import org.sonar.server.es.BulkIndexer.Size;
 import org.sonar.server.es.EsClient;
 import org.sonar.server.es.IndexType;
+import org.sonar.server.es.IndexingListener;
+import org.sonar.server.es.IndexingResult;
+import org.sonar.server.es.ResiliencyIndexingListener;
 import org.sonar.server.es.ResilientIndexer;
-import org.sonar.server.es.ResilientIndexerResult;
 import org.sonar.server.es.StartupIndexer;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 import static org.sonar.core.util.stream.MoreCollectors.toHashSet;
-import static org.sonar.server.rule.index.RuleIndexDefinition.INDEX;
 import static org.sonar.server.rule.index.RuleIndexDefinition.INDEX_TYPE_RULE;
 import static org.sonar.server.rule.index.RuleIndexDefinition.INDEX_TYPE_RULE_EXTENSION;
 
@@ -68,7 +69,7 @@ public class RuleIndexer implements StartupIndexer, ResilientIndexer {
 
   @Override
   public void indexOnStartup(Set<IndexType> uninitializedIndexTypes) {
-    BulkIndexer bulk = new BulkIndexer(esClient, INDEX, Size.LARGE);
+    BulkIndexer bulk = createBulkIndexer(Size.LARGE, IndexingListener.noop());
     bulk.start();
 
     // index all definitions and system extensions
@@ -123,12 +124,12 @@ public class RuleIndexer implements StartupIndexer, ResilientIndexer {
   }
 
   @Override
-  public ResilientIndexerResult index(DbSession dbSession, Collection<EsQueueDto> items) {
+  public IndexingResult index(DbSession dbSession, Collection<EsQueueDto> items) {
     if (items.isEmpty()) {
-      return new ResilientIndexerResult();
+      return new IndexingResult();
     }
 
-    ResilientIndexerResult result = new ResilientIndexerResult();
+    IndexingResult result = new IndexingResult();
 
     ListMultimap<EsQueueDto.Type, EsQueueDto> itemsByType = groupItemsByType(items);
 
@@ -138,9 +139,9 @@ public class RuleIndexer implements StartupIndexer, ResilientIndexer {
     return result;
   }
 
-  private ResilientIndexerResult doIndexRules(DbSession dbSession, List<EsQueueDto> items) {
-    BulkIndexer bulkIndexer = newBulkIndexerForRules(Size.REGULAR);
-    bulkIndexer.start(dbSession, dbClient, items);
+  private IndexingResult doIndexRules(DbSession dbSession, List<EsQueueDto> items) {
+    BulkIndexer bulkIndexer = createBulkIndexer(Size.REGULAR, new ResiliencyIndexingListener(dbClient, dbSession, items));
+    bulkIndexer.start();
 
     Set<RuleKey> rules = items
       .stream()
@@ -168,9 +169,9 @@ public class RuleIndexer implements StartupIndexer, ResilientIndexer {
     return bulkIndexer.stop();
   }
 
-  private ResilientIndexerResult doIndexRuleExtensions(DbSession dbSession, List<EsQueueDto> items) {
-    BulkIndexer bulkIndexer = newBulkIndexerForRules(Size.REGULAR);
-    bulkIndexer.start(dbSession, dbClient, items);
+  private IndexingResult doIndexRuleExtensions(DbSession dbSession, List<EsQueueDto> items) {
+    BulkIndexer bulkIndexer = createBulkIndexer(Size.REGULAR, new ResiliencyIndexingListener(dbClient, dbSession, items));
+    bulkIndexer.start();
 
     Set<RuleExtensionId> docIds = items
       .stream()
@@ -185,10 +186,9 @@ public class RuleIndexer implements StartupIndexer, ResilientIndexer {
       // only index requests, no deletion requests.
       // Deactivated users are not deleted but updated.
       r -> {
-        docIds.remove(new RuleExtensionId(r.getOrganizationUuid(), r.getPluginName(), r.getPluginRuleKey()) );
+        docIds.remove(new RuleExtensionId(r.getOrganizationUuid(), r.getPluginName(), r.getPluginRuleKey()));
         bulkIndexer.add(newRuleExtensionDocIndexRequest(r));
       });
-
 
     // the remaining items reference rows that don't exist in db. They must
     // be deleted from index.
@@ -250,8 +250,8 @@ public class RuleIndexer implements StartupIndexer, ResilientIndexer {
       .parent(ruleExtensionDoc.getParent());
   }
 
-  private BulkIndexer newBulkIndexerForRules(Size bulkSize) {
-    return new BulkIndexer(esClient, INDEX_TYPE_RULE.getIndex(), bulkSize);
+  private BulkIndexer createBulkIndexer(Size bulkSize, IndexingListener listener) {
+    return new BulkIndexer(esClient, INDEX_TYPE_RULE.getIndex(), bulkSize, listener);
   }
 
   private static ListMultimap<EsQueueDto.Type, EsQueueDto> groupItemsByType(Collection<EsQueueDto> items) {

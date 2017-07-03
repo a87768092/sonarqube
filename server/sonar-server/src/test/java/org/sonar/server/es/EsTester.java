@@ -64,7 +64,7 @@ public class EsTester extends ExternalResource {
 
   @Override
   protected void before() throws Throwable {
-    truncateIndices();
+    deleteIndices();
 
     if (!indexDefinitions.isEmpty()) {
       container = new ComponentContainer();
@@ -87,8 +87,12 @@ public class EsTester extends ExternalResource {
     }
   }
 
-  private void truncateIndices() {
+  private void deleteIndices() {
     client.nativeClient().admin().indices().prepareDelete("_all").get();
+  }
+
+  public void deleteIndex(String indexName) {
+    client.nativeClient().admin().indices().prepareDelete(indexName).get();
   }
 
   public void putDocuments(String index, String type, BaseDoc... docs) {

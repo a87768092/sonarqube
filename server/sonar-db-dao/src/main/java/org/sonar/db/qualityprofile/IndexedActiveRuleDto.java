@@ -17,25 +17,40 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
+package org.sonar.db.qualityprofile;
 
-package org.sonar.server.es;
+import javax.annotation.CheckForNull;
 
-import java.util.Collection;
-import org.sonar.db.DbSession;
-import org.sonar.db.es.EsQueueDto;
+public class IndexedActiveRuleDto {
+  private long id;
+  private int severity;
+  private String inheritance;
+  private String repository;
+  private String key;
+  private String ruleProfileUuid;
 
-/**
- * This kind of indexers that are resilient
- */
-public interface ResilientIndexer {
+  public long getId() {
+    return id;
+  }
 
-  /**
-   * Index the items and delete them from es_queue table when the indexation
-   * is done, keep it if there is a failure on the item of the collection
-   *
-   * @param dbSession the db session
-   * @param items     the items to be indexed
-   * @return the number of successful indexation
-   */
-  IndexingResult index(DbSession dbSession, Collection<EsQueueDto> items);
+  public int getSeverity() {
+    return severity;
+  }
+
+  @CheckForNull
+  public String getInheritance() {
+    return inheritance;
+  }
+
+  public String getRepository() {
+    return repository;
+  }
+
+  public String getKey() {
+    return key;
+  }
+
+  public String getRuleProfileUuid() {
+    return ruleProfileUuid;
+  }
 }
